@@ -3,159 +3,141 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Camera with Filters and Controls</title>
+  <title>AI Filters with Camera</title>
   <style>
     body {
       margin: 0;
       display: flex;
-      justify-content: center;
-      align-items: center;
       flex-direction: column;
+      align-items: center;
+      justify-content: center;
       height: 100vh;
-      background: #f4f4f4;
+      background-color: #f4f4f4;
     }
 
-    #video {
+    video, canvas {
       width: 100%;
       max-width: 400px;
       border: 2px solid #333;
       border-radius: 10px;
-      margin-bottom: 20px;
     }
 
-    .controls {
+    #controls {
       display: flex;
+      justify-content: center;
+      margin-top: 10px;
       gap: 10px;
     }
 
-    button {
+    button, select {
       padding: 10px;
       background-color: #333;
       color: white;
       border: none;
       cursor: pointer;
       border-radius: 5px;
-      font-size: 16px;
+      font-size: 14px;
     }
 
-    button:hover {
+    button:hover, select:hover {
       background-color: #555;
     }
 
-    .filters {
-      display: flex;
-      gap: 10px;
-      margin-top: 10px;
+    select {
+      font-size: 14px;
+      padding: 5px;
     }
-
-    .filter {
-      width: 30px;
-      height: 30px;
-      background-color: #ccc;
-      border-radius: 50%;
-      cursor: pointer;
-    }
-
-    .filter:hover {
-      background-color: #777;
-    }
-
-    .sepia {
-      background-color: #b29b6d;
-    }
-
-    .grayscale {
-      background-color: #7f7f7f;
-    }
-
-    .invert {
-      background-color: #ff4d4d;
-    }
-
-    .blur {
-      background-color: #a3a3a3;
-    }
-
   </style>
 </head>
 <body>
   <video id="video" autoplay playsinline></video>
+  <canvas id="canvas" style="display:none;"></canvas>
 
-  <div class="controls">
-    <button id="flipButton">Flip Camera</button>
-    <button id="toggleButton">Toggle Camera</button>
-  </div>
-
-  <div class="filters">
-    <div class="filter sepia" onclick="applyFilter('sepia')"></div>
-    <div class="filter grayscale" onclick="applyFilter('grayscale')"></div>
-    <div class="filter invert" onclick="applyFilter('invert')"></div>
-    <div class="filter blur" onclick="applyFilter('blur')"></div>
+  <div id="controls">
+    <select id="filter">
+      <option value="">No Filter</option>
+      <option value="grayscale(1)">Grayscale</option>
+      <option value="sepia(1)">Sepia</option>
+      <option value="invert(1)">Invert</option>
+      <option value="blur(5px)">Blur</option>
+      <option value="contrast(2)">High Contrast</option>
+    </select>
+    <button id="capturePhoto">Capture Photo</button>
+    <button id="recordVideo">Record Video</button>
+    <button id="stopRecording" style="display:none;">Stop Recording</button>
+    <button id="download">Download</button>
   </div>
 
   <script>
     const video = document.getElementById('video');
-    const flipButton = document.getElementById('flipButton');
-    const toggleButton = document.getElementById('toggleButton');
-    let currentStream;
-    let isFrontCamera = true;
+    const canvas = document.getElementById('canvas');
+    const filterSelect = document.getElementById('filter');
+    const capturePhotoButton = document.getElementById('capturePhoto');
+    const recordVideoButton = document.getElementById('recordVideo');
+    const stopRecordingButton = document.getElementById('stopRecording');
+    const downloadButton = document.getElementById('download');
 
-    // Access the user's camera
-    function startCamera(front = true) {
-      const constraints = { video: { facingMode: front ? 'user' : 'environment' } };
+    let mediaRecorder, recordedChunks = [], currentStream;
 
-      navigator.mediaDevices
-        .getUserMedia(constraints)
-        .then((stream) => {
-          if (currentStream) {
-            currentStream.getTracks().forEach(track => track.stop());
-          }
-          currentStream = stream;
-          video.srcObject = stream;
-        })
-        .catch((err) => {
-          console.error("Error accessing the camera: ", err);
-          alert("Unable to access the camera. Please allow permissions.");
-        });
+    // Start camera
+    async function startCamera() {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      currentStream = stream;
+      video.srcObject = stream;
     }
 
-    // Start the camera initially
+    // Apply filter
+    filterSelect.addEventListener('change', () => {
+      video.style.filter = filterSelect.value;
+    });
+
+    // Capture photo
+    capturePhotoButton.addEventListener('click', () => {
+      const context = canvas.getContext('2d');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.filter = filterSelect.value; // Apply filter to photo
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const photo = canvas.toDataURL('image/png');
+      downloadButton.setAttribute('href', photo);
+      downloadButton.setAttribute('download', 'photo.png');
+      downloadButton.click();
+    });
+
+    // Record video
+    recordVideoButton.addEventListener('click', () => {
+      recordedChunks = [];
+      mediaRecorder = new MediaRecorder(currentStream, { mimeType: 'video/webm' });
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunks.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const videoURL = URL.createObjectURL(blob);
+        downloadButton.setAttribute('href', videoURL);
+        downloadButton.setAttribute('download', 'video.webm');
+        downloadButton.click();
+      };
+
+      mediaRecorder.start();
+      recordVideoButton.style.display = 'none';
+      stopRecordingButton.style.display = 'inline-block';
+    });
+
+    // Stop recording
+    stopRecordingButton.addEventListener('click', () => {
+      mediaRecorder.stop();
+      recordVideoButton.style.display = 'inline-block';
+      stopRecordingButton.style.display = 'none';
+    });
+
+    // Start the camera
     startCamera();
-
-    // Flip Camera (front/back)
-    flipButton.addEventListener('click', () => {
-      isFrontCamera = !isFrontCamera;
-      startCamera(isFrontCamera);
-    });
-
-    // Toggle between front and back camera
-    toggleButton.addEventListener('click', () => {
-      isFrontCamera = !isFrontCamera;
-      startCamera(isFrontCamera);
-    });
-
-    // Apply filter to the video stream
-    function applyFilter(filter) {
-      video.style.filter = '';
-
-      switch (filter) {
-        case 'sepia':
-          video.style.filter = 'sepia(1)';
-          break;
-        case 'grayscale':
-          video.style.filter = 'grayscale(1)';
-          break;
-        case 'invert':
-          video.style.filter = 'invert(1)';
-          break;
-        case 'blur':
-          video.style.filter = 'blur(5px)';
-          break;
-        default:
-          video.style.filter = '';
-          break;
-      }
-    }
   </script>
 </body>
 </html>
