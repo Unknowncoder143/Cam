@@ -3,40 +3,159 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Camera without Mirror</title>
+  <title>Camera with Filters and Controls</title>
   <style>
     body {
       margin: 0;
       display: flex;
       justify-content: center;
       align-items: center;
+      flex-direction: column;
       height: 100vh;
       background: #f4f4f4;
     }
-    video {
+
+    #video {
       width: 100%;
       max-width: 400px;
       border: 2px solid #333;
       border-radius: 10px;
+      margin-bottom: 20px;
     }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      padding: 10px;
+      background-color: #333;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+
+    button:hover {
+      background-color: #555;
+    }
+
+    .filters {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .filter {
+      width: 30px;
+      height: 30px;
+      background-color: #ccc;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .filter:hover {
+      background-color: #777;
+    }
+
+    .sepia {
+      background-color: #b29b6d;
+    }
+
+    .grayscale {
+      background-color: #7f7f7f;
+    }
+
+    .invert {
+      background-color: #ff4d4d;
+    }
+
+    .blur {
+      background-color: #a3a3a3;
+    }
+
   </style>
 </head>
 <body>
   <video id="video" autoplay playsinline></video>
 
+  <div class="controls">
+    <button id="flipButton">Flip Camera</button>
+    <button id="toggleButton">Toggle Camera</button>
+  </div>
+
+  <div class="filters">
+    <div class="filter sepia" onclick="applyFilter('sepia')"></div>
+    <div class="filter grayscale" onclick="applyFilter('grayscale')"></div>
+    <div class="filter invert" onclick="applyFilter('invert')"></div>
+    <div class="filter blur" onclick="applyFilter('blur')"></div>
+  </div>
+
   <script>
     const video = document.getElementById('video');
+    const flipButton = document.getElementById('flipButton');
+    const toggleButton = document.getElementById('toggleButton');
+    let currentStream;
+    let isFrontCamera = true;
 
     // Access the user's camera
-    navigator.mediaDevices
-      .getUserMedia({ video: true })
-      .then((stream) => {
-        video.srcObject = stream; // Set video source to camera stream
-      })
-      .catch((err) => {
-        console.error("Error accessing the camera: ", err);
-        alert("Unable to access the camera. Please allow permissions.");
-      });
+    function startCamera(front = true) {
+      const constraints = { video: { facingMode: front ? 'user' : 'environment' } };
+
+      navigator.mediaDevices
+        .getUserMedia(constraints)
+        .then((stream) => {
+          if (currentStream) {
+            currentStream.getTracks().forEach(track => track.stop());
+          }
+          currentStream = stream;
+          video.srcObject = stream;
+        })
+        .catch((err) => {
+          console.error("Error accessing the camera: ", err);
+          alert("Unable to access the camera. Please allow permissions.");
+        });
+    }
+
+    // Start the camera initially
+    startCamera();
+
+    // Flip Camera (front/back)
+    flipButton.addEventListener('click', () => {
+      isFrontCamera = !isFrontCamera;
+      startCamera(isFrontCamera);
+    });
+
+    // Toggle between front and back camera
+    toggleButton.addEventListener('click', () => {
+      isFrontCamera = !isFrontCamera;
+      startCamera(isFrontCamera);
+    });
+
+    // Apply filter to the video stream
+    function applyFilter(filter) {
+      video.style.filter = '';
+
+      switch (filter) {
+        case 'sepia':
+          video.style.filter = 'sepia(1)';
+          break;
+        case 'grayscale':
+          video.style.filter = 'grayscale(1)';
+          break;
+        case 'invert':
+          video.style.filter = 'invert(1)';
+          break;
+        case 'blur':
+          video.style.filter = 'blur(5px)';
+          break;
+        default:
+          video.style.filter = '';
+          break;
+      }
+    }
   </script>
 </body>
 </html>
