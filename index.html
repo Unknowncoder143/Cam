@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Webcam Reflection</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #222;
+      margin: 0;
+      color: #fff;
+      flex-direction: column;
+    }
+
+    .container {
+      position: relative;
+    }
+
+    video {
+      width: 320px;
+      height: 240px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    }
+
+    canvas {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      transform: scaleY(-1);
+      opacity: 0.6;
+    }
+  </style>
+</head>
+<body>
+  <h1>Webcam with Reflection</h1>
+  <div class="container">
+    <video id="webcam" autoplay></video>
+    <canvas id="reflection"></canvas>
+  </div>
+
+  <script>
+    const video = document.getElementById('webcam');
+    const canvas = document.getElementById('reflection');
+    const ctx = canvas.getContext('2d');
+
+    // Access user's webcam
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then((stream) => {
+        video.srcObject = stream;
+
+        // Set canvas size to match video
+        video.addEventListener('loadeddata', () => {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+        });
+
+        // Update reflection in real-time
+        video.addEventListener('play', () => {
+          function drawReflection() {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, 'rgba(0, 0, 0, 0.5)');
+            gradient.addColorStop(1, 'transparent');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (!video.paused && !video.ended) {
+              requestAnimationFrame(drawReflection);
+            }
+          }
+          drawReflection();
+        });
+      })
+      .catch((err) => {
+        console.error('Error accessing webcam:', err);
+        alert('Webcam access is required to see the effect.');
+      });
+  </script>
+</body>
+</html>
