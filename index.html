@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Webcam Reflection</title>
+  <title>Off-Camera Reflection</title>
   <style>
     body {
       display: flex;
@@ -29,15 +29,15 @@
 
     canvas {
       position: absolute;
-      top: 100%;
-      left: 0;
-      transform: scaleY(-1);
-      opacity: 0.6;
+      top: 120%; /* Shift reflection downward */
+      left: 20%; /* Shift reflection horizontally */
+      transform: scaleY(-1); /* Flip vertically */
+      opacity: 0.6; /* Transparent effect */
     }
   </style>
 </head>
 <body>
-  <h1>Webcam with Reflection</h1>
+  <h1>Webcam with Off-Camera Reflection</h1>
   <div class="container">
     <video id="webcam" autoplay></video>
     <canvas id="reflection"></canvas>
@@ -62,13 +62,17 @@
         // Update reflection in real-time
         video.addEventListener('play', () => {
           function drawReflection() {
+            // Draw the mirrored webcam feed
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Apply fading gradient for realism
             const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
             gradient.addColorStop(0, 'rgba(0, 0, 0, 0.5)');
             gradient.addColorStop(1, 'transparent');
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+            // Keep the reflection dynamic
             if (!video.paused && !video.ended) {
               requestAnimationFrame(drawReflection);
             }
